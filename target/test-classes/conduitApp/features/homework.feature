@@ -5,7 +5,6 @@ Feature: Home Work
         * url apiUrl
         * def timeValidator = read('classpath:helpers/timeValidator.js') 
 
-    @debug 
     Scenario: Favorite articles
         # Step 1: Get articles of the global feed
         Given params { limit: 10 , offset: 0 }
@@ -85,60 +84,79 @@ Feature: Home Work
         # Step 8: Verify that slug ID from Step 2 exist in one of the favorite articles
         * match response.articles[*].slug contains articleId
  
-    # Scenario: Comment articles
-    #     # Step 1: Get atricles of the global feed
-    #     Given params { limit: 10 , offset: 0 }
-    #     Given path 'articles'
-    #     When method get
-    #     Then status 200
-    #     # Step 2: Get the slug ID for the first artice, save it to variable
-    #     * def articleId = response.articles[0].slug
-    #     # Step 3: Make a GET call to 'comments' end-point to get all comments
-    #     Given path 'articles', articleId, "comments" 
-    #     When method get
-    #     Then status 200
-    #     # Step 4: Verify response schema
-    #     And match each response.comments ==
-    #     """
-    #         {
-    #             "id": "#number",
-    #             "createdAt": "#? timeValidator(_)",
-    #             "updatedAt": "#? timeValidator(_)",
-    #             "body": "#string",
-    #             "author": {
-    #                 "username": "#string",
-    #                 "bio": "##string",
-    #                 "image": "#string",
-    #                 "following": "#boolean"
-    #             }
-    #         }
-    #     """
-    #     # # Step 5: Get the count of the comments array lentgh and save to variable
-    #     #     #Example
-    #     # * def responseWithComments = response.comments
-    #     # * def commentCount = responseWithComments.length
-    #     # # Step 6: Make a POST request to publish a new comment
-    #     # Given path 'articles', articleId, "comments" 
-    #     # And request { comment: { body: "test1" }}
-    #     # When method post
-    #     # Then status 200
-    #     # # Step 7: Verify response schema that should contain posted comment text
-    #     # And match response.comments ==
-    #     # """
-    #     #     {
-    #     #         "id": "#number",
-    #     #         "createdAt": "#? timeValidator(_)",
-    #     #         "updatedAt": "#? timeValidator(_)",
-    #     #         "body": "#string",
-    #     #         "author": {
-    #     #             "username": "#string",
-    #     #             "bio": "##string",
-    #     #             "image": "#string",
-    #     #             "following": "#boolean"
-    #     #         }
-    #     #     }
-    #     # """
-    #     # Step 8: Get the list of all comments for this article one more time
-    #     # Step 9: Verify number of comments increased by 1 (similar like we did with favorite counts)
-    #     # Step 10: Make a DELETE request to delete comment
-    #     # Step 11: Get all comments again and verify number of comments decreased by 1
+    @debug
+    Scenario: Comment articles
+        # Step 1: Get atricles of the global feed
+        Given params { limit: 10 , offset: 0 }
+        Given path 'articles'
+        When method get
+        Then status 200
+        # Step 2: Get the slug ID for the first artice, save it to variable
+        * def articleId = response.articles[0].slug
+        # Step 3: Make a GET call to 'comments' end-point to get all comments
+        Given path 'articles', articleId, "comments" 
+        When method get
+        Then status 200
+        # Step 4: Verify response schema
+        And match each response.comments ==
+        """
+            {
+                "id": "#number",
+                "createdAt": "#? timeValidator(_)",
+                "updatedAt": "#? timeValidator(_)",
+                "body": "#string",
+                "author": {
+                    "username": "#string",
+                    "bio": "##string",
+                    "image": "#string",
+                    "following": "#boolean"
+                }
+            }
+        """
+        # Step 5: Get the count of the comments array lentgh and save to variable
+            #Example
+        * def responseWithComments = response.comments
+        * def commentCount = responseWithComments.length
+
+        # Step 6: Make a POST request to publish a new comment
+        Given path 'articles', articleId, "comments" 
+        And request { comment: { body: "test1" }}
+        When method post
+        Then status 200
+        # Step 7: Verify response schema that should contain posted comment text
+        And match response.comment ==
+        """
+            {
+                "id": "#number",
+                "createdAt": "#? timeValidator(_)",
+                "updatedAt": "#? timeValidator(_)",
+                "body": "#string",
+                "author": {
+                    "username": "#string",
+                    "bio": "##string",
+                    "image": "#string",
+                    "following": "#boolean"
+                }
+            }
+        """
+        * def commentId = response.comment.id
+        # Step 8: Get the list of all comments for this article one more time
+        Given path 'articles', articleId, "comments" 
+        When method get
+        Then status 200
+        # Step 9: Verify number of comments increased by 1 (similar like we did with favorite counts)
+        * def newResponseComment = response.comments
+        * def newCount = newResponseComment.length
+        * match newCount == commentCount + 1
+
+        # Step 10: Make a DELETE request to delete comment
+        Given path 'articles', articleId, "comments", commentId
+        When method delete
+        Then status 200
+        # Step 11: Get all comments again and verify number of comments decreased by 1
+        Given path 'articles', articleId, "comments" 
+        When method get
+        Then status 200
+        * def deleteResponseComment = response.comments
+        * def deleteCount = deleteResponseComment.length
+        * match deleteCount == newCount - 1
